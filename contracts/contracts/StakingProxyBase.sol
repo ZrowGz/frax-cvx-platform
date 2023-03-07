@@ -46,12 +46,10 @@ contract StakingProxyBase is IProxyVault{
     }
 
     //initialize vault
-    function initialize(address _owner, address _stakingAddress, address _stakingToken, address _rewardsAddress) external virtual{
-
-    }
+    function initialize(address _owner, address _stakingAddress, address _stakingToken, address _rewardsAddress) external virtual{}
 
     function changeRewards(address _rewardsAddress) external onlyAdmin{
-        
+        /// TODO could this be moved into the reward token manager?
         //remove from old rewards and claim
         if(IRewards(rewards).active()){
             uint256 bal = IRewards(rewards).balanceOf(address(this));
@@ -108,6 +106,7 @@ contract StakingProxyBase is IProxyVault{
 
     //checkpoint and add/remove weight to convex rewards contract
     function _checkpointRewards() internal{
+        /// TODO this would likely be needed over in the reward token manager instead of the vault
         //if rewards are active, checkpoint
         if(IRewards(rewards).active()){
             //using liquidity shares from staking contract will handle rebasing tokens correctly
@@ -146,6 +145,7 @@ contract StakingProxyBase is IProxyVault{
 
     //get extra rewards
     function _processExtraRewards() internal{
+        ---
         if(IRewards(rewards).active()){
             //check if there is a balance because the reward contract could have be activated later
             //dont use _checkpointRewards since difference of 0 will still call deposit() and cost gas
@@ -162,7 +162,7 @@ contract StakingProxyBase is IProxyVault{
     //transfer other reward tokens besides fxs(which needs to have fees applied)
     function _transferTokens(address[] memory _tokens) internal{
         //transfer all tokens
-        for(uint256 i = 0; i < _tokens.length; i++){
+        for(uint256 i; i < _tokens.length; i++){
             if(_tokens[i] != fxs){
                 uint256 bal = IERC20(_tokens[i]).balanceOf(address(this));
                 if(bal > 0){

@@ -10,6 +10,8 @@ import "./interfaces/IProxyVault.sol";
 import "./interfaces/IPoolRegistry.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+import "./interfaces/IRewardTokenManager.sol";
+
 
 /// @notice Testing was completed in a separate repository: https://github.com/ZrowGz/frax-transfers.git
 
@@ -26,6 +28,7 @@ contract StakingProxyConvex is StakingProxyBase, ReentrancyGuard{
 
     address public curveLpToken;
     address public convexDepositToken;
+    address public rewardTokenManager;
 
     //the poolId for calling vaultMap in the registry to verify a receiver is a legitimate convex vault (for lock transfers)
     address public poolRegistry;
@@ -75,7 +78,7 @@ contract StakingProxyConvex is StakingProxyBase, ReentrancyGuard{
     }
 
     //initialize vault
-    function initialize(address _owner, address _stakingAddress, address _stakingToken, address _rewardsAddress) external override{
+    function initialize(address _owner, address _stakingAddress, address _stakingToken, address _rewardsAddress, address _rewardTokenManager) external override{
         require(owner == address(0),"already init");
 
         //set variables
@@ -83,6 +86,9 @@ contract StakingProxyConvex is StakingProxyBase, ReentrancyGuard{
         stakingAddress = _stakingAddress;
         stakingToken = _stakingToken;
         rewards = _rewardsAddress;
+
+        //set reward token manager
+        rewardTokenManager = _rewardTokenManager;
 
         //get tokens from pool info
         (address _lptoken, address _token,,, , ) = ICurveConvex(convexCurveBooster).poolInfo(IConvexWrapperV2(_stakingToken).convexPoolId());
@@ -104,7 +110,12 @@ contract StakingProxyConvex is StakingProxyBase, ReentrancyGuard{
             IERC20(curveLpToken).safeTransferFrom(msg.sender, address(this), _liquidity);
 
             //deposit into wrapper
-            IConvexWrapperV2(stakingToken).deposit(_liquidity, address(this));
+            // IConvexWrapperV2(stakingToken).deposit(_liquidity, address(this));
+
+            //deposit into reward token manager
+            IRewardTokenManager(rewardTokenManager).depositCurveLp(_liquidity);
+
+            // The vault now received the staking token. 
 
             //stake
             lockId = IFraxFarmERC20(stakingAddress).manageStake(_liquidity, _secs, _useTargetStakeIndex, targetIndex);

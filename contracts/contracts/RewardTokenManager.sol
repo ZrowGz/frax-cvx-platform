@@ -7,8 +7,9 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 // import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import './RewardToken.sol';
 // import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./interfaces/IFraxFarmERC20TransferByIndex.sol";
 
-contract RewardTokenManager is ERC20{
+contract RewardTokenManager is ERC20,IConvexWrapperV2{
     using SafeERC20 for IERC20;
     ///
     /**
@@ -29,6 +30,11 @@ contract RewardTokenManager is ERC20{
     *   This is effectively an erc20
     */
 
+    // struct EarnedData {
+    //     address token;
+    //     uint256 amount;
+    // }
+
     // mapping(address => uint256) public vaultBalance; // todo handled by the erc20 component
     address public stakingToken;
     address public curveLpToken;
@@ -37,18 +43,26 @@ contract RewardTokenManager is ERC20{
     bool public isInit;
     address public owner;
 
+    address[] public rewardTokens;
+
     // function isVault(address _vault) public view returns(bool){
     //     IPoolRegistry(poolRegistry).isVault(_vault);
     // }
 
-    function initialize(address _stakingToken, string memory _name, string memory _symbol) public {
+    function initialize(address _stakingToken, address[] calldata _rewardTokens, string memory _name, string memory _symbol) public {
         require(!isInit,"already init");
         owner = msg.sender;
+
+        rewardTokens = _rewardTokens;
 
         __ERC20_init(_name, _symbol);
         stakingToken = _stakingToken;
 
         isInit = true;
+    }
+
+    function balanceOf(address account) public view override(ERC20, IConvexWrapperV2) returns (uint256) {
+        return balanceOf(account);
     }
 
     function depositConvexToken(uint256 _amount) external {
@@ -107,23 +121,66 @@ contract RewardTokenManager is ERC20{
         /// and will write & deposit to the farm
         /// This will happen on the first iteration through the farm updates
         /// and it will only happen once per week
-    }
-    
-    function claimEpochYields() internal returns(address[] memory rwdTkns, uint256[] memory tknAmts){
         /// draws in the accrued yields of CRV & CVX (and any extra rewards)
         /// returns the tokens and amounts
-        //get all rewards from the wrapper
+
+        //get address & amounts of rewards
+        EarnedData[] memory earnedRwds = IConvexWrapperV2(stakingToken).earned(address(this));
+        address[] memory rwdTkns; 
+        uint256[] memory tknAmts;
+
+        //claim rewards from wrapper
         IConvexWrapperV2(stakingToken).getReward(address(this));
 
-        //get all rewards from the wrapper
-        IConvexWrapperV2(stakingToken).getReward(address(this), address(this));
-
-        //send all rewards to the frax famr
-        IERC20(stakingToken).safeTransfer(msg.sender, IERC20(stakingToken).balanceOf(address(this)));
+        //send all rewards to the frax farm
+        for(uint256 i; i < rwdTkns.length; i++){
+            /// TODO if reward token is on the original list, send to the farm
+            /// if not, add to balance of this contract for later payout...
+            /// TODO: Farm cannot have new tokens added as reward tokens!
+            //add the reward token & amount to the arrays
+            rwdTkns[i] = earnedRwds[i].token;
+            tknAmts[i] = earnedRwds[i].amount;
+            //send all rewards to the frax farm
+            IERC20(stakingToken).safeTransfer(msg.sender, IERC20(stakingToken).balanceOf(address(this)));
+        }
     }
 
-    function updateRewardRates() internal {
-        /// write the reward token rates to the farm for the coming week
-        /// distribute the reward tokens to the farm
+    function writeRewardRate(address rwdTkn, uint256 rwdAmt) external {
+        //calculate reward rate (tknAamt / 1 week in seconds)
+        uint256 rwdRate = rwdAmt / 604800;
+
+        //write the reward rate to the farm
+        /// TODO: Farm cannot have new tokens added as reward tokens!
+        /// This means that if there are more tokens in the rwdTkns than initially set on the farm, 
+        //    all attempts to distribute would revert & no payouts would happen... 
+        /**
+            So, we could potentially just make those claimable to the vault directly?
+            - or have that be paid based on combined_weight values from the farm &
+                have the vault claim those during the pre transfer hook? Though then we would need a whole
+                system to track user balances over time...
+            - maybe it'd work to claim extra rewards to here on vault interactions, then have the vault
+                claim those on balance changing calls?
+        */
+        IFraxFarmERC20(msg.sender).setRewardVars(rwdTkn, rwdRate, address(0), address(0));
     }
+
+    /// Overrides to make warning go away
+    function collateralVault() external view override returns(address vault) {}
+    function convexPoolId() external view returns(uint256 _poolId) {}
+    function curveToken() external view returns(address) {}
+    function convexToken() external view returns(address) {}
+    // function balanceOf(address _account) external view returns(uint256) {}
+    function totalBalanceOf(address _account) external view returns(uint256) {}
+    function deposit(uint256 _amount, address _to) external {}
+    function stake(uint256 _amount, address _to) external {}
+    function withdraw(uint256 _amount) external {}
+    function withdrawAndUnwrap(uint256 _amount) external {}
+    function getReward(address _account) external {}
+    function getReward(address _account, address _forwardTo) external {}
+    function rewardLength() external view returns(uint256) {}
+    function rewards(uint256 _index) external view returns(RewardType memory rewardInfo) {}
+    function earned(address _account) external returns(EarnedData[] memory claimable) {}
+    function earnedView(address _account) external view returns(EarnedData[] memory claimable) {}
+    function setVault(address _vault) external {}
+    function user_checkpoint(address[2] calldata _accounts) external returns(bool) {}
 }

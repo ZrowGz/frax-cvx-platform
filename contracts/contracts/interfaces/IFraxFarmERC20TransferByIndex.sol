@@ -64,4 +64,10 @@ interface IFraxFarmERC20 {
     function setApprovalForAll(address spender, bool approved) external;
     function transferLocked(address receiver_address, uint256 sender_lock_index, uint256 transfer_amount, bool use_receiver_lock_index, uint256 receiver_lock_index) external returns(uint256,uint256);
     function preTransferProcess(address from, address to) external;
+    function setRewardVars(
+        address reward_token_address, 
+        uint256 _new_rate, 
+        address _gauge_controller_address, 
+        address _rewards_distributor_address
+    ) external;
 }

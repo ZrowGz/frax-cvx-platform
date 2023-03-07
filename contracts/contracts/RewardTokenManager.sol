@@ -9,7 +9,7 @@ import './RewardToken.sol';
 // import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/IFraxFarmERC20TransferByIndex.sol";
 
-contract RewardTokenManager is ERC20,IConvexWrapperV2{
+contract RewardTokenManager is ERC20{//,IConvexWrapperV2{
     using SafeERC20 for IERC20;
     ///
     /**
@@ -59,10 +59,6 @@ contract RewardTokenManager is ERC20,IConvexWrapperV2{
         stakingToken = _stakingToken;
 
         isInit = true;
-    }
-
-    function balanceOf(address account) public view override(ERC20, IConvexWrapperV2) returns (uint256) {
-        return balanceOf(account);
     }
 
     function depositConvexToken(uint256 _amount) external {
@@ -125,7 +121,7 @@ contract RewardTokenManager is ERC20,IConvexWrapperV2{
         /// returns the tokens and amounts
 
         //get address & amounts of rewards
-        EarnedData[] memory earnedRwds = IConvexWrapperV2(stakingToken).earned(address(this));
+        IConvexWrapperV2.EarnedData[] memory earnedRwds = IConvexWrapperV2(stakingToken).earned(address(this));
         address[] memory rwdTkns; 
         uint256[] memory tknAmts;
 
@@ -165,22 +161,24 @@ contract RewardTokenManager is ERC20,IConvexWrapperV2{
     }
 
     /// Overrides to make warning go away
-    function collateralVault() external view override returns(address vault) {}
-    function convexPoolId() external view returns(uint256 _poolId) {}
-    function curveToken() external view returns(address) {}
-    function convexToken() external view returns(address) {}
-    // function balanceOf(address _account) external view returns(uint256) {}
-    function totalBalanceOf(address _account) external view returns(uint256) {}
-    function deposit(uint256 _amount, address _to) external {}
-    function stake(uint256 _amount, address _to) external {}
-    function withdraw(uint256 _amount) external {}
-    function withdrawAndUnwrap(uint256 _amount) external {}
-    function getReward(address _account) external {}
-    function getReward(address _account, address _forwardTo) external {}
-    function rewardLength() external view returns(uint256) {}
-    function rewards(uint256 _index) external view returns(RewardType memory rewardInfo) {}
-    function earned(address _account) external returns(EarnedData[] memory claimable) {}
-    function earnedView(address _account) external view returns(EarnedData[] memory claimable) {}
-    function setVault(address _vault) external {}
-    function user_checkpoint(address[2] calldata _accounts) external returns(bool) {}
+    // function collateralVault() external view override returns(address vault) {}
+    // function convexPoolId() external view returns(uint256 _poolId) {}
+    // function curveToken() external view returns(address) {}
+    // function convexToken() external view returns(address) {}
+    // function balanceOf(address account) public view override(ERC20, IConvexWrapperV2) returns (uint256) {
+    //     return balanceOf(account);
+    // }
+    // function totalBalanceOf(address _account) external view returns(uint256) {}
+    // function deposit(uint256 _amount, address _to) external {}
+    // function stake(uint256 _amount, address _to) external {}
+    // function withdraw(uint256 _amount) external {}
+    // function withdrawAndUnwrap(uint256 _amount) external {}
+    // function getReward(address _account) external {}
+    // function getReward(address _account, address _forwardTo) external {}
+    // function rewardLength() external view returns(uint256) {}
+    // function rewards(uint256 _index) external view returns(RewardType memory rewardInfo) {}
+    // function earned(address _account) external returns(EarnedData[] memory claimable) {}
+    // function earnedView(address _account) external view returns(EarnedData[] memory claimable) {}
+    // function setVault(address _vault) external {}
+    // function user_checkpoint(address[2] calldata _accounts) external returns(bool) {}
 }
